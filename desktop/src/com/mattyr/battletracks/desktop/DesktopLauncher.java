@@ -8,6 +8,9 @@ public class DesktopLauncher {
 	public static void main (String[] arg) {
 		LwjglApplicationConfiguration config = new LwjglApplicationConfiguration();
 		config.title = "Battle Tracks";
+		config.width = 1920;
+		config.height = 1080;
+		config.fullscreen = true;
 		new LwjglApplication(new BattleTracks(), config);
 	}
 }
