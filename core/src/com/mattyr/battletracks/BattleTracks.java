@@ -13,6 +13,7 @@ import com.badlogic.gdx.graphics.Texture;
 import com.badlogic.gdx.graphics.g2d.BitmapFont;
 import com.badlogic.gdx.graphics.g2d.Sprite;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
+import com.mattyr.battletracks.backend.Vehicle;
 
 public class BattleTracks extends ApplicationAdapter {
 	SpriteBatch batch;
@@ -22,9 +23,12 @@ public class BattleTracks extends ApplicationAdapter {
 	ArrayList<Vehicle> vehicles = new ArrayList<Vehicle>();
 	OrthographicCamera camera;
 	BitmapFont screenText;
-	Pixmap hardpointDot;
-	Texture dotTexture;
-	Sprite sprite; 
+	Pixmap tankDot;
+	Pixmap gunDot;
+	Texture tankDotTexture;
+	Sprite tankDotSprite; 
+	Texture gunDotTexture;
+	Sprite gunDotSprite; 
 	
 	@Override
 	public void create () {
@@ -33,19 +37,28 @@ public class BattleTracks extends ApplicationAdapter {
 		screenText.setColor(Color.RED);
 		groundTxt = new Texture(Gdx.files.internal("ground.png"));
 		SpawnPoint playerSpawn = new SpawnPoint(true); 
-		player1 = new Vehicle(playerSpawn.x, playerSpawn.y, new Texture(Gdx.files.internal("tankBody.png")), false);
+		player1 = new Tank(playerSpawn.x, playerSpawn.y, new Texture(Gdx.files.internal("tankBody.png")));
 		player1.AddTurret();
 		vehicles.add(player1);
 		camera = new OrthographicCamera();
 	    camera.setToOrtho(false, 1920, 1080);
-	    hardpointDot = new Pixmap(2,2,Pixmap.Format.RGBA8888);
-	    hardpointDot.setColor(Color.RED);
-	    hardpointDot.fill();
-	    hardpointDot.drawCircle(1, 1, 1);
-	    dotTexture = new Texture(hardpointDot);
-	    hardpointDot.dispose();
+	    tankDot = new Pixmap(2,2,Pixmap.Format.RGBA8888);
+	    tankDot.setColor(Color.RED);
+	    tankDot.fill();
+	    tankDot.drawCircle(1, 1, 1);
+	    gunDot = new Pixmap(2,2,Pixmap.Format.RGBA8888);
+	    gunDot.setColor(Color.PINK);
+	    gunDot.fill();
+	    gunDot.drawCircle(1, 1, 1);
+	    tankDotTexture = new Texture(tankDot);
+	    tankDot.dispose();
 	    
-	    sprite = new Sprite(dotTexture);
+	    tankDotSprite = new Sprite(tankDotTexture);
+	    
+	    gunDotTexture = new Texture(gunDot);
+	    gunDot.dispose();
+	    
+	    gunDotSprite = new Sprite(gunDotTexture);
 	}
 
 	public static class SpawnPoint{
@@ -78,26 +91,36 @@ public class BattleTracks extends ApplicationAdapter {
 		getKeyPressed();
 		batch.draw(groundTxt, 0,0);
 		for(Vehicle vehicle : vehicles){
-		batch.draw(vehicle.region, vehicle.x, vehicle.y, vehicle.centrePoint.relativeX , vehicle.centrePoint.relativeY ,vehicle.width, vehicle.height, 1f, 1f, vehicle.direction);
-		sprite.setPosition(vehicle.hardPoint.x, vehicle.hardPoint.y);
-		sprite.draw(batch);
-		sprite.setPosition(vehicle.realX, vehicle.realY);
-		sprite.draw(batch);
-		sprite.setPosition(vehicle.x, vehicle.y);
-		sprite.draw(batch);
-		sprite.setPosition(vehicle.centrePoint.x, vehicle.centrePoint.y);
-		sprite.draw(batch);
-		//if(vehicle.gun != null)
-			//batch.draw(vehicle.gun.region, vehicle.gun.x, vehicle.gun.y, vehicle.gun.centrePoint.relativeX , vehicle.gun.centrePoint.relativeY ,vehicle.gun.width, vehicle.gun.height, 1f, 1f, vehicle.gun.direction);
+		batch.draw(vehicle.getRegion(), vehicle.getX(), vehicle.getY(), vehicle.getCentrePoint().getRelativeX() , vehicle.getCentrePoint().getRelativeY() ,vehicle.getWidth(), vehicle.getHeight(), 1f, 1f, vehicle.getDirection());
+		tankDotSprite.setPosition(vehicle.getHardPoint().getX(), vehicle.getHardPoint().getY());
+		tankDotSprite.draw(batch);
+		tankDotSprite.setPosition(vehicle.getRealX(), vehicle.getRealY());
+		tankDotSprite.draw(batch);
+		tankDotSprite.setPosition(vehicle.getX(), vehicle.getY());
+		tankDotSprite.draw(batch);
+		tankDotSprite.setPosition(vehicle.getCentrePoint().getX(), vehicle.getCentrePoint().getY());
+		tankDotSprite.draw(batch);
+		
+		
+		tankDotSprite.draw(batch);
+		if(vehicle.getTurret() != null)
+			batch.draw(vehicle.getTurret().getRegion(), vehicle.getTurret().getX() ,vehicle.getTurret().getY(), vehicle.getTurret().getCentrePoint().getRelativeX() , vehicle.getTurret().getCentrePoint().getRelativeY() ,vehicle.getTurret().getWidth(), vehicle.getTurret().getHeight(), 1f, 1f, vehicle.getTurret().getDirection());
+			
+			gunDotSprite.setPosition(vehicle.getTurret().getRealX(), vehicle.getTurret().getRealY());
+			gunDotSprite.draw(batch);
+			gunDotSprite.setPosition(vehicle.getTurret().getX(), vehicle.getTurret().getY());
+			gunDotSprite.draw(batch);
+			gunDotSprite.setPosition(vehicle.getTurret().getCentrePoint().getX(), vehicle.getTurret().getCentrePoint().getY());
+			gunDotSprite.draw(batch);
 		}
 		screenText.draw(batch, debugText(), 10, 1080);
 		batch.end();
 	}
 	
 	public String debugText(){
-		return "Player 1:\nx="+player1.x+"\ny="+player1.y+"\nDirection="+player1.direction+"\nWidth="+player1.width+"\nHeight="+player1.height+"\nHardpoint.X="+player1.hardPoint.x +"\nHardpoint.Y="+player1.hardPoint.y+"\nCentrePoint.x="+player1.centrePoint.x+"\nCentrePoint.y="+player1.centrePoint.y+
+		return "Player 1:\nx="+player1.getX()+"\ny="+player1.getY()+"\nDirection="+player1.getDirection()+"\nWidth="+player1.getWidth()+"\nHeight="+player1.getHeight()+"\nHardpoint.X="+player1.getHardPoint().getX() +"\nHardpoint.Y="+player1.getHardPoint().getY()+"\nCentrePoint.x="+player1.getCentrePoint().getX()+"\nCentrePoint.y="+player1.getCentrePoint().getY()+
 				"\n\nFPS="+Gdx.graphics.getFramesPerSecond() +
-				"\n\nPlayer 1 Gun:\nx="+player1.gun.x+"\ny="+player1.gun.y+"\nDirection="+player1.gun.direction+"\nWidth="+player1.gun.width+"\nHeight="+player1.gun.height+"\nCentre Point x="+player1.gun.centrePoint.x+"\nCentre Point y="+player1.gun.centrePoint.y
+				"\n\nPlayer 1 Gun:\nx="+player1.getTurret().getX()+"\ny="+player1.getTurret().getY()+"\nDirection="+player1.getTurret().getDirection()+"\nWidth="+player1.getTurret().getWidth()+"\nHeight="+player1.getTurret().getHeight()+"\nCentre Point x="+player1.getTurret().getCentrePoint().getX()+"\nCentre Point y="+player1.getTurret().getCentrePoint().getY()
 				;
 	}
 	
@@ -125,9 +148,9 @@ public class BattleTracks extends ApplicationAdapter {
     	
 
     	if(Gdx.input.isKeyPressed(Input.Keys.LEFT))
-			player1.gun.turn(true);
+			player1.getTurret().turn(true);
     	if(Gdx.input.isKeyPressed(Input.Keys.RIGHT))
-			player1.gun.turn(false);
+			player1.getTurret().turn(false);
     	
         return true;
     }
