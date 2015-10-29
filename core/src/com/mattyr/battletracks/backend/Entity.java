@@ -1,5 +1,10 @@
 package com.mattyr.battletracks.backend;
 
+import java.util.ArrayList;
+
+import com.badlogic.gdx.graphics.Texture;
+import com.badlogic.gdx.graphics.g2d.TextureRegion;
+
 public class Entity {
 	private float forwardSpeed;
 	private float reverseSpeed;
@@ -9,11 +14,85 @@ public class Entity {
 	private float height;
 	private float x;
 	private float y;
-	private float realX;
-	private float realY;
+	public ArrayList<POI> allPOI = new ArrayList<POI>();
+	public POI centrePoint;
+	public POI bLeft;
+	public POI tLeft;
+	public POI bRight;
+	public POI tRight;
+	private String name;
+	Texture texture;
+	private TextureRegion region;
+	
+	Entity(float startX, float startY, Texture loadTexture, String name){
+		setName(name);
+		texture = loadTexture;
+		setRegion(new TextureRegion(texture));
+		setWidth(texture.getWidth());
+		setHeight(texture.getHeight());
+		setX(startX);
+		setY(startY);
+		setDirection(0);
+		centrePoint = new POI(this);
+		centrePoint.setXY();
+		bLeft = new POI(this, 0f, 0f);
+		tLeft = new POI(this, 0f, this.getHeight());
+		bRight = new POI(this, this.getWidth(), 0f);
+		tRight = new POI(this, this.getWidth(), this.getHeight());
+	}
 	
 	public void setTurnSpeed(float speed){
 		turnSpeed = speed;
+	}
+	
+	public void turn(boolean swap){
+		setDirection(getDirection() + ((swap) ? getTurnSpeed() : -getTurnSpeed()));
+		if(getDirection() >= 360)
+			setDirection(0);
+		else if(getDirection() < 0)
+			setDirection(359);
+		setPOIs();
+	}
+	
+
+	public void drive(boolean swap){
+
+		float velocityX;
+		float velocityY;
+		float directionX;
+		float directionY;
+
+		directionX = (float) Math.cos(Math.toRadians(this.getDirection()));			
+		directionY = (float) Math.sin(Math.toRadians(this.getDirection()));
+		
+		if(!swap){
+		velocityX = directionX * getForwardSpeed();
+		velocityY = directionY * getForwardSpeed();
+		setX(getX() + velocityX);		
+		setY(getY() + velocityY);	
+		} else {
+			velocityX = directionX * getReverseSpeed();
+			velocityY = directionY * getReverseSpeed();
+			setX(getX() - velocityX);			
+			setY(getY() - velocityY);
+		}
+		setPOIs();
+	}
+	
+	public void setPOIs(){
+		centrePoint.setXY();
+		bLeft.setXY2();
+		tLeft.setXY2();
+		bRight.setXY2();
+		tRight.setXY2();
+	}
+	
+	public TextureRegion getRegion() {
+		return region;
+	}
+
+	public void setRegion(TextureRegion region) {
+		this.region = region;
 	}
 	
 	public void setForwardSpeed(float speed){
@@ -34,22 +113,6 @@ public class Entity {
 	
 	public float getReverseSpeed(){
 		return reverseSpeed;
-	}
-	
-	public float getRealX() {
-		return realX;
-	}
-
-	public void setRealX(float realX) {
-		this.realX = realX;
-	}
-
-	public float getRealY() {
-		return realY;
-	}
-
-	public void setRealY(float realY) {
-		this.realY = realY;
 	}
 
 	public float getX() {
@@ -91,60 +154,31 @@ public class Entity {
 	public void setDirection(float direction) {
 		this.direction = direction;
 	}
+
+
+	public String getName() {
+		return name;
+	}
+
+
+	public void setName(String name) {
+		this.name = name;
+	}
 	
-	public class CentrePoint{
-		private float x;
-		private float y;
-		private float relativeX;
-		private float relativeY;
+	@Override
+	public String toString(){
+		String finalString = getName()+":\nx="+getX()+
+				"\ny="+getY()+
+				"\nDirection="+getDirection()+
+				"\nWidth="+getWidth()+
+				"\nHeight="+getHeight()+
+				"\nTurn Speed="+getTurnSpeed()+
+				"\nForward Speed="+getForwardSpeed()+
+				"\nReverse Speed="+getReverseSpeed();
 		
-		CentrePoint(){
-			setRelativeX(Entity.this.getWidth() /2);
-			setRelativeY(Entity.this.getHeight() /2);
-			setXY();
-		}
+		for(POI poiString : allPOI)
+			finalString += poiString.toString();
 		
-		CentrePoint(float offsetX, float offsetY){
-			setRelativeX(offsetX);
-			setRelativeY(offsetY);
-			setXY();
-		}
-		
-		void setXY(){
-			setX(Entity.this.getX() + this.getRelativeX());
-			setY(Entity.this.getY() + this.getRelativeY());
-		}
-
-		public float getX() {
-			return x;
-		}
-
-		public void setX(float x) {
-			this.x = x;
-		}
-
-		public float getY() {
-			return y;
-		}
-
-		public void setY(float y) {
-			this.y = y;
-		}
-
-		public float getRelativeX() {
-			return relativeX;
-		}
-
-		public void setRelativeX(float relativeX) {
-			this.relativeX = relativeX;
-		}
-
-		public float getRelativeY() {
-			return relativeY;
-		}
-
-		public void setRelativeY(float relativeY) {
-			this.relativeY = relativeY;
-		}
+		return "\n"+finalString;
 	}
 }

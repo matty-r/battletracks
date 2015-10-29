@@ -1,63 +1,73 @@
 package com.mattyr.battletracks.backend;
 
+import java.util.ArrayList;
+
+import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.graphics.Texture;
-import com.badlogic.gdx.graphics.g2d.TextureRegion;
 import com.mattyr.battletracks.backend.Entity;
+import com.mattyr.battletracks.backend.POI;
 
 public class Weapon extends Entity {
-	Texture texture;
-	private TextureRegion region;
-
-	private CentrePoint centrePoint;
-	boolean isTurret;
+	public POI bulletPoint;
 	Vehicle ownerVehicle;
+	ArrayList<Projectile> projectiles = new ArrayList<Projectile>();
+	long reloadDelayMillis;
+	long lastShotTime = 0;
 
-	public Weapon(float startX, float startY, Texture loadTexture, Vehicle vehicle){
-		texture = loadTexture;
-		ownerVehicle = vehicle;
-		setRegion(new TextureRegion(texture));
-		setWidth(texture.getWidth());
-		setHeight(texture.getHeight());
-		setX(startX);
-		setY(startY);
-		setDirection(0);
-		setTurnSpeed(ownerVehicle.getTurnSpeed() * 3);
-		setCentrePoint(new CentrePoint(12,9));
-		setPOIs();
+	public Weapon(float startX, float startY, Texture loadTexture, Vehicle vehicle, String name, long reloadDelay){
+		super(startX, startY, loadTexture, name);
+		this.ownerVehicle = vehicle; 
+		this.reloadDelayMillis = reloadDelay;
 	}
-	
-	public void turn(boolean swap){
-		setDirection(getDirection() + ((swap) ? getTurnSpeed() : -getTurnSpeed()));
-		
-		if(getDirection() >= 360)
-			setDirection(0);
-		else if(getDirection() < 0)
-			setDirection(359);
 
-		setPOIs();
+	public ArrayList<Projectile> getBulletObjects() {
+		return projectiles;
 	}
-	
-	
-	
+
+	public void setBulletObjects(ArrayList<Projectile> bulletObjects) {
+		projectiles = bulletObjects;
+	}
+
 	public void setPOIs(){
-		getCentrePoint().setXY();
-		setX(ownerVehicle.getHardPoint().getX() - getCentrePoint().getRelativeX());
-		setY(ownerVehicle.getHardPoint().getY() - getCentrePoint().getRelativeY());
+		super.setPOIs();
+		
+		if(ownerVehicle != null){		
+			if(ownerVehicle.hardPoint != null && centrePoint != null){
+				setX(ownerVehicle.hardPoint.getX() - centrePoint.getRelativeX());
+				setY(ownerVehicle.hardPoint.getY() - centrePoint.getRelativeY());
+			}
+			if(bulletPoint != null){		
+				bulletPoint.setXY2();
+			}
+		}
+		
 	}
+	
+	public void makeBullet(){
+		if(System.currentTimeMillis() - lastShotTime >= reloadDelayMillis){	
+			Projectile bullet = new Projectile(bulletPoint.getX(),bulletPoint.getY(),new Texture(Gdx.files.internal("bullet.png")),ownerVehicle,"poop");
+			lastShotTime = System.currentTimeMillis();
+			projectiles.add(bullet);
 
-	public CentrePoint getCentrePoint() {
-		return centrePoint;
+			bullet.setForwardSpeed(15f);
+			bullet.setDirection(getDirection());
+			bullet.setX(bulletPoint.getX());
+			bullet.setY(bulletPoint.getY());
+			bullet.setPOIs();
+		}
 	}
-
-	public void setCentrePoint(CentrePoint centrePoint) {
-		this.centrePoint = centrePoint;
+	
+	@Override
+	public String toString(){
+		return super.toString();
 	}
-
-	public TextureRegion getRegion() {
-		return region;
-	}
-
-	public void setRegion(TextureRegion region) {
-		this.region = region;
+	
+	public void faceMouse(){
+		float mouseAngle = (float) Math.toDegrees(Math.atan2((1080 - Gdx.input.getY()) - centrePoint.getY(), Gdx.input.getX() - centrePoint.getX()));
+		if(mouseAngle < 0)
+			mouseAngle = 360 - (-mouseAngle);
+		
+		setDirection(mouseAngle);
+		setPOIs();
 	}
 }
