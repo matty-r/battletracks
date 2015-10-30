@@ -11,11 +11,11 @@ public class Vehicle extends Entity {
 	private Weapon turret;
 	public POI hardPoint;
 	
-	public Vehicle(float startX, float startY, Texture loadTexture, String name){
-		super(startX, startY, loadTexture, name);
+	public Vehicle(float startX, float startY, Texture loadTexture, String name,int healthValue){
+		super(startX, startY, loadTexture, name, healthValue);
 	}
 	
-	public void AddTurret(String name){
+	public void addTurret(String name){
 		setTurret(new TankTurret(getX(), getY(), new Texture(Gdx.files.internal("tankTurret.png")), this, name));
 	}
 

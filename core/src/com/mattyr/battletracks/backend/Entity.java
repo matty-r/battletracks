@@ -2,6 +2,7 @@ package com.mattyr.battletracks.backend;
 
 import java.util.ArrayList;
 
+import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.graphics.Texture;
 import com.badlogic.gdx.graphics.g2d.TextureRegion;
 
@@ -23,9 +24,11 @@ public class Entity {
 	private String name;
 	Texture texture;
 	private TextureRegion region;
+	private int healthValue;
 	
-	Entity(float startX, float startY, Texture loadTexture, String name){
+	Entity(float startX, float startY, Texture loadTexture, String name, int healthValue){
 		setName(name);
+		this.setHealthValue(healthValue);
 		texture = loadTexture;
 		setRegion(new TextureRegion(texture));
 		setWidth(texture.getWidth());
@@ -33,12 +36,12 @@ public class Entity {
 		setX(startX);
 		setY(startY);
 		setDirection(0);
-		centrePoint = new POI(this);
+		centrePoint = new POI(this, "Centre Point");
 		centrePoint.setXY();
-		bLeft = new POI(this, 0f, 0f);
-		tLeft = new POI(this, 0f, this.getHeight());
-		bRight = new POI(this, this.getWidth(), 0f);
-		tRight = new POI(this, this.getWidth(), this.getHeight());
+		bLeft = new POI(this, 0f, 0f, "Bottom Left");
+		tLeft = new POI(this, 0f, this.getHeight(), "Top Left");
+		bRight = new POI(this, this.getWidth(), 0f, "Bottom Right");
+		tRight = new POI(this, this.getWidth(), this.getHeight(), "Top Right");
 	}
 	
 	public void setTurnSpeed(float speed){
@@ -51,6 +54,30 @@ public class Entity {
 			setDirection(0);
 		else if(getDirection() < 0)
 			setDirection(359);
+		setPOIs();
+	}
+	
+	public void destroy(){
+		for(x = allPOI.size() -1; x > -1; x--){
+			allPOI.remove(x);
+		}
+	}
+	
+	public void faceMouse(){
+		float targetAngle = (float) Math.toDegrees(Math.atan2((1080 - Gdx.input.getY()) - centrePoint.getY(), Gdx.input.getX() - centrePoint.getX()));
+		if(targetAngle < 0)
+			targetAngle = 360 - (-targetAngle);
+		
+		setDirection(targetAngle);
+		setPOIs();
+	}
+	
+	public void faceVehicle(Vehicle target){
+		float targetAngle = (float) Math.toDegrees(Math.atan2(target.centrePoint.getY() - centrePoint.getY(), target.centrePoint.getX() - centrePoint.getX()));
+		if(targetAngle < 0)
+			targetAngle = 360 - (-targetAngle);
+		
+		setDirection(targetAngle);
 		setPOIs();
 	}
 	
@@ -85,6 +112,8 @@ public class Entity {
 		tLeft.setXY2();
 		bRight.setXY2();
 		tRight.setXY2();
+		
+		
 	}
 	
 	public TextureRegion getRegion() {
@@ -180,5 +209,13 @@ public class Entity {
 			finalString += poiString.toString();
 		
 		return "\n"+finalString;
+	}
+
+	public int getHealthValue() {
+		return healthValue;
+	}
+
+	public void setHealthValue(int healthValue) {
+		this.healthValue = healthValue;
 	}
 }

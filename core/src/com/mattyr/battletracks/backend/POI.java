@@ -1,15 +1,28 @@
 package com.mattyr.battletracks.backend;
 
+import com.badlogic.gdx.math.Vector2;
 import com.mattyr.battletracks.backend.Entity;
 
-public class POI {
-	private float x;
-	private float y;
+public class POI extends Vector2 {
+	/**
+	 * 
+	 */
+	private static final long serialVersionUID = 969476707029396237L;
 	private float relativeX;
 	private float relativeY;
 	private Entity owner;
+	private String name;
 	
-	public POI(Entity owner){
+	public String getName() {
+		return name;
+	}
+
+	public void setName(String name) {
+		this.name = name;
+	}
+
+	public POI(Entity owner, String name){
+		this.name = name;
 		this.owner = owner;
 		setRelativeX(owner.getWidth() /2);
 		setRelativeY(owner.getHeight() /2);
@@ -17,7 +30,8 @@ public class POI {
 		this.owner.allPOI.add(this);
 	}
 	
-	public POI(Entity owner,float offsetX, float offsetY){
+	public POI(Entity owner,float offsetX, float offsetY, String name){
+		this.name = name;
 		this.owner = owner;
 		setRelativeX(offsetX);
 		setRelativeY(offsetY);
@@ -69,7 +83,7 @@ public class POI {
 	
 	@Override
 	public String toString(){
-		String finalString = "\nPOI: X="+getX()+" Y="+getY();
+		String finalString = "\n"+name+"> POI: X="+getX()+" Y="+getY();
 		return finalString;
 	}
 }
