@@ -35,6 +35,12 @@ public class Vehicle extends Entity {
 	public Weapon getTurret() {
 		return turret;
 	}
+	
+	@Override
+	public void destroy(){
+		turret.destroy();
+		super.destroy();
+	}
 
 	public void setTurret(Weapon turret) {
 		this.turret = turret;

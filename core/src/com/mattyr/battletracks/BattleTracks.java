@@ -13,6 +13,8 @@ import com.badlogic.gdx.graphics.Texture;
 import com.badlogic.gdx.graphics.g2d.BitmapFont;
 import com.badlogic.gdx.graphics.g2d.Sprite;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
+import com.badlogic.gdx.graphics.glutils.ShapeRenderer;
+import com.badlogic.gdx.graphics.glutils.ShapeRenderer.ShapeType;
 import com.badlogic.gdx.math.Intersector;
 import com.mattyr.battletracks.backend.Entity;
 import com.mattyr.battletracks.backend.POI;
@@ -37,8 +39,9 @@ public class BattleTracks extends ApplicationAdapter {
 	Texture tankDotTexture;
 	Sprite tankDotSprite; 
 	Texture gunDotTexture;
-	Sprite gunDotSprite; 
-	static private Boolean DEBUG_ENABLE = true;
+	Sprite gunDotSprite;
+	ShapeRenderer healthBar;
+	private Boolean debugEnable = false;
 	
 
 	@Override
@@ -50,12 +53,12 @@ public class BattleTracks extends ApplicationAdapter {
 		gameText.setColor(Color.RED);
 		
 		groundTxt = new Texture(Gdx.files.internal("ground2.png"));
-		tankBody = new Texture(Gdx.files.internal("tankBody.png"));
 		SpawnPoint playerSpawn = new SpawnPoint(true); 
-		player1 = new Tank(playerSpawn.x, playerSpawn.y, tankBody, "Player 1");
+		//player1 = new Helicopter(playerSpawn.x, playerSpawn.y, new Texture(Gdx.files.internal("Helicopter.png")), "Player 1");
+		player1 = new Tank(playerSpawn.x, playerSpawn.y, "Player 1");
 		player1.addTurret("Player 1 Turret");
 		vehicles.add(player1);
-		
+		healthBar = new ShapeRenderer();
 		camera = new OrthographicCamera();
 	    camera.setToOrtho(false, 1920, 1080);
 	    tankDot = new Pixmap(2,2,Pixmap.Format.RGBA8888);
@@ -108,18 +111,26 @@ public class BattleTracks extends ApplicationAdapter {
 
 		camera.update();
         batch.setProjectionMatrix(camera.combined);
-
+        
 		batch.begin();
-		if((Math.random() * 5000) > 4990){
+				
+		if((Math.random() * 100) > 99.8f){
 			spawnEnemy();
 		}
 		getKeyPressed();
-		batch.draw(groundTxt, 0,0);
-		for(Vehicle vehicle : vehicles){
+		
+		try{
+			batch.draw(groundTxt, 0,0);
+			ArrayList<Vehicle> tempVehicles = new ArrayList<Vehicle>();
+			for(Vehicle tempVehicle : vehicles)
+				tempVehicles.add(tempVehicle);
+			
+		for(Vehicle vehicle : tempVehicles){
 			projectileCollision(vehicle.getTurret().getBulletObjects());
-			if(vehicle != null && vehicles.contains(vehicle)){
+				
+			if(vehicles.contains(vehicle)){
 			batch.draw(vehicle.getRegion(), vehicle.getX(), vehicle.getY(), vehicle.centrePoint.getRelativeX() , vehicle.centrePoint.getRelativeY() ,vehicle.getWidth(), vehicle.getHeight(), 1f, 1f, vehicle.getDirection());
-		if(DEBUG_ENABLE)
+		if(debugEnable)
 			for(POI eachPOI : vehicle.allPOI){
 				tankDotSprite.setPosition(eachPOI.getX(), eachPOI.getY());
 				tankDotSprite.draw(batch);
@@ -137,7 +148,7 @@ public class BattleTracks extends ApplicationAdapter {
 			for(Projectile bullet : vehicle.getTurret().getBulletObjects()){
 				bullet.drive(false);
 				batch.draw(bullet.getRegion(), bullet.getX(), bullet.getY(), bullet.centrePoint.getRelativeX() , bullet.centrePoint.getRelativeY() ,bullet.getWidth(), bullet.getHeight(), 1f, 1f, bullet.getDirection());
-				if(DEBUG_ENABLE){
+				if(debugEnable){
 					for(POI eachPOI : bullet.allPOI){
 						gunDotSprite.setPosition(eachPOI.getX(), eachPOI.getY());
 						gunDotSprite.draw(batch);
@@ -145,19 +156,29 @@ public class BattleTracks extends ApplicationAdapter {
 				}
 			}
 			
-			if(DEBUG_ENABLE)
+			if(debugEnable)
 				for(POI eachPOI : vehicle.getTurret().allPOI){
 					gunDotSprite.setPosition(eachPOI.getX(), eachPOI.getY());
 					gunDotSprite.draw(batch);
 				}
 			}
 		}
-		
-		if(DEBUG_ENABLE)
-			screenText.draw(batch, debugText(), 10, 1080);
-		
-		gameText.draw(batch, gameTextString, Gdx.graphics.getWidth() /2, 1080);
+		} finally {		
+	
+		if(debugEnable)
+			screenText.draw(batch, debugText(), 2, Gdx.graphics.getHeight());
+		gameText.draw(batch, gameTextString, Gdx.graphics.getWidth() /2, Gdx.graphics.getHeight());
 		batch.end();
+		
+		
+		healthBar.begin(ShapeType.Filled);
+		healthBar.setColor(Color.RED);
+		for(Vehicle tempVehicle : vehicles){
+			float healthBarValue = (float) (tempVehicle.getWidth()/100) * (((float) (tempVehicle.getCurrentHealthValue() ) / tempVehicle.getMaxHealthValue())*100);
+			healthBar.rect(tempVehicle.getX(),tempVehicle.getY()- 20,healthBarValue ,1);
+		}
+		healthBar.end();
+		}
 	}
 	
 	public String debugText(){
@@ -197,36 +218,48 @@ public class BattleTracks extends ApplicationAdapter {
    		
     	}
     	
+    	if(Gdx.input.isKeyPressed(Input.Keys.SPACE))
+    		debugEnable = !debugEnable;
+    	
     	if(Gdx.input.isButtonPressed(Input.Buttons.LEFT))
     		player1.getTurret().makeBullet();
     	/**
     	 * Used for testing purposes only
     	 */
     	if(Gdx.input.isButtonPressed(Input.Buttons.RIGHT)){
-    		if(vehicles.contains(player2)){
-    			player2.getTurret().destroy();
-    			player2.destroy();
-    			
-    			player2.setX((float)(Math.random() * -300));
-    			player2.setY((float)(Math.random() * -300));
-    			player2.setPOIs();
-    			player2.addTurret("Player 2 Turret");
-    		} else {
-    			player2 = new Tank((float)(Math.random() * -300), (float)(Math.random() * -300), tankBody, "Player "+(Math.round(Math.random()*100)));
-        		player2.addTurret("Player 2 Turret");
-    			vehicles.add(player2);
-    		}
+    		spawnEnemy();
     	}
+    		
     	
-   	
         return true;
     }
     
     private void spawnEnemy(){
-    	Vehicle randomEnemy = new Tank((float)(Math.random() * -300), (float)(Math.random() * -300), tankBody, "Player "+(Math.round(Math.random()*100)));
+    	float minXY = (float) (Math.random() * (0 + 300)) * -1;
+    	float minX = (float) (Math.random() * 2220);
+    	float minY = (float) (Math.random() * 1380);
+    	float finalX = 0;
+    	float finalY = 0;
+    	
+    	if(Math.random() * 1 > .5f)
+    		finalX = minXY;
+    	else
+    		finalX = minX;
+    	
+    	if(Math.random() * 1 > .5f)
+    		finalY = minXY;
+    	else
+    		finalY = minY;
+    	
+    	if(finalX < Gdx.graphics.getWidth() && finalX > 0 && finalY < Gdx.graphics.getHeight() && finalY > 0)
+    		if(Math.random() * 1 > .5f)
+    			finalX += (Gdx.graphics.getWidth() - finalX) + 300;
+        	else
+        		finalY += (Gdx.graphics.getHeight() - finalY) + 300;
+    		
+    	
+    	Vehicle randomEnemy = new Tank(finalX, finalY, "Player "+(Math.round(Math.random()*100)));
     	randomEnemy.addTurret(randomEnemy.getName()+" Turret");
-    	randomEnemy.setX((float)(Math.random() * -300));
-    	randomEnemy.setY((float)(Math.random() * -300));
     	randomEnemy.setPOIs();
     	vehicles.add(randomEnemy);
     }
@@ -237,16 +270,16 @@ public class BattleTracks extends ApplicationAdapter {
 		for(Projectile projectile : arrayList){			
 			//for(POI firstPOI : projectile.allPOI){
 				if(projectile.getX() > Gdx.graphics.getWidth() || projectile.getY() > Gdx.graphics.getHeight() || projectile.getX() < 0 || projectile.getY() < 0){
-					projectile.setHealthValue(0);
+					projectile.setCurrentHealthValue(0);
 				}
 					
 				for(Entity testEntity : vehicles){
 					if(testEntity != projectile.getOwnerVehicle()){
 					if(getInsideHeavy(projectile,testEntity)){
-						testEntity.setHealthValue(testEntity.getHealthValue() - projectile.getHealthValue());
-						gameTextString = projectile.getOwnerVehicle().getName() + " hit " + testEntity.getName() + " for " + projectile.getHealthValue() + " points of damage. " + testEntity.getHealthValue() +" remaining.";
-						projectile.setHealthValue(0);
-						if(testEntity.getHealthValue() <= 0){
+						testEntity.setCurrentHealthValue(testEntity.getCurrentHealthValue() - projectile.getCurrentHealthValue());
+						gameTextString = projectile.getOwnerVehicle().getName() + " hit " + testEntity.getName() + " for " + projectile.getCurrentHealthValue() + " points of damage. " + testEntity.getCurrentHealthValue() +" remaining.";
+						projectile.setCurrentHealthValue(0);
+						if(testEntity.getCurrentHealthValue() <= 0){
 							if(!removeVeh.contains(testEntity)){
 								removeVeh.add(testEntity);
 							}
@@ -254,7 +287,7 @@ public class BattleTracks extends ApplicationAdapter {
 					}
 					}
 				}
-				if(projectile.getHealthValue() <= 0)
+				if(projectile.getCurrentHealthValue() <= 0)
 					if(!removePOI.contains(projectile))
 						removePOI.add(projectile);
 			}
@@ -264,13 +297,9 @@ public class BattleTracks extends ApplicationAdapter {
 			arrayList.remove(arrayList.indexOf(poi));
 		}
 		for(Entity vehicle : removeVeh){
-			if(vehicle == player1){
-			
-			} else {
 				vehicle.destroy();
 				vehicles.remove(vehicle);
 				return true;
-			}
 		}
 		return false;
     }

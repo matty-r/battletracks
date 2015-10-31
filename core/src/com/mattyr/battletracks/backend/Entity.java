@@ -24,11 +24,13 @@ public class Entity {
 	private String name;
 	Texture texture;
 	private TextureRegion region;
-	private int healthValue;
+	private int maxHealthValue;
+	private int currentHealthValue;
 	
 	Entity(float startX, float startY, Texture loadTexture, String name, int healthValue){
 		setName(name);
-		this.setHealthValue(healthValue);
+		setMaxHealthValue(healthValue);
+		setCurrentHealthValue(healthValue);
 		texture = loadTexture;
 		setRegion(new TextureRegion(texture));
 		setWidth(texture.getWidth());
@@ -67,7 +69,6 @@ public class Entity {
 		float targetAngle = (float) Math.toDegrees(Math.atan2((1080 - Gdx.input.getY()) - centrePoint.getY(), Gdx.input.getX() - centrePoint.getX()));
 		if(targetAngle < 0)
 			targetAngle = 360 - (-targetAngle);
-		
 		setDirection(targetAngle);
 		setPOIs();
 	}
@@ -211,11 +212,22 @@ public class Entity {
 		return "\n"+finalString;
 	}
 
-	public int getHealthValue() {
-		return healthValue;
+	public int getCurrentHealthValue() {
+		return currentHealthValue;
 	}
 
-	public void setHealthValue(int healthValue) {
-		this.healthValue = healthValue;
+	public void setCurrentHealthValue(int currentHealthValue) {
+		if(currentHealthValue > getMaxHealthValue())
+			currentHealthValue = getMaxHealthValue();
+		
+		this.currentHealthValue = currentHealthValue;
+	}
+
+	public int getMaxHealthValue() {
+		return maxHealthValue;
+	}
+
+	public void setMaxHealthValue(int maxHealthValue) {
+		this.maxHealthValue = maxHealthValue;
 	}
 }

@@ -5,14 +5,14 @@ import com.badlogic.gdx.graphics.Texture;
 import com.mattyr.battletracks.backend.POI;
 import com.mattyr.battletracks.backend.Vehicle;
 
-public class Tank extends Vehicle {
-	final static int HEALTH = 50;
-	final static float FORWARD_SPEED = 2f;
-	final static float REVERSE_SPEED = 2f;
-	final static float TURN_SPEED = 3f;
+public class Helicopter extends Vehicle {
+	final static int HEALTH = 30;
+	final static float FORWARD_SPEED = 4f;
+	final static float REVERSE_SPEED = 1f;
+	final static float TURN_SPEED = 4f;
 		
-	public Tank(float startX, float startY, String name) {
-		super(startX, startY, new Texture(Gdx.files.internal("tankBody.png")), name, HEALTH);
+	public Helicopter(float startX, float startY, Texture loadTexture,String name) {
+		super(startX, startY, loadTexture, name, HEALTH);
 		setTurnSpeed(TURN_SPEED);
 		setForwardSpeed(FORWARD_SPEED);
 		setReverseSpeed(REVERSE_SPEED);

@@ -13,7 +13,7 @@ public class TankTurret extends Weapon {
 	private static int CENTRE_RELATIVE_Y = 9;
 
 	public TankTurret(float startX, float startY, Texture loadTexture, Vehicle vehicle, String name){
-		super(startX, startY, loadTexture, vehicle, name, RELOAD_DELAY, vehicle.getHealthValue());
+		super(startX, startY, loadTexture, vehicle, name, RELOAD_DELAY, vehicle.getCurrentHealthValue());
 		//Doesn't affect mouse movements
 		setTurnSpeed(vehicle.getTurnSpeed() * TURN_SPEED_FACTOR);
 		centrePoint.setRelativeX(CENTRE_RELATIVE_X);
