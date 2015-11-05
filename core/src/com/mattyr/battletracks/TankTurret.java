@@ -7,7 +7,7 @@ import com.mattyr.battletracks.backend.Vehicle;
 import com.mattyr.battletracks.backend.Weapon;
 
 public class TankTurret extends Weapon {
-	private static int RELOAD_DELAY = 600;
+	private static int RELOAD_DELAY = 700;
 	private static int TURN_SPEED_FACTOR = 3;
 	private static int CENTRE_RELATIVE_X = 12;
 	private static int CENTRE_RELATIVE_Y = 9;

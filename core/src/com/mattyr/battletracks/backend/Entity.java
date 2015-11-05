@@ -4,17 +4,15 @@ import java.util.ArrayList;
 
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.graphics.Texture;
+import com.badlogic.gdx.graphics.g2d.Batch;
 import com.badlogic.gdx.graphics.g2d.TextureRegion;
+import com.badlogic.gdx.scenes.scene2d.Actor;
+import com.badlogic.gdx.scenes.scene2d.utils.ClickListener;
 
-public class Entity {
+public class Entity extends Actor {
 	private float forwardSpeed;
 	private float reverseSpeed;
 	private float turnSpeed;
-	private float direction;
-	private float width;
-	private float height;
-	private float x;
-	private float y;
 	public ArrayList<POI> allPOI = new ArrayList<POI>();
 	public POI centrePoint;
 	public POI bLeft;
@@ -37,7 +35,7 @@ public class Entity {
 		setHeight(texture.getHeight());
 		setX(startX);
 		setY(startY);
-		setDirection(0);
+		setRotation(0);
 		centrePoint = new POI(this, "Centre Point");
 		centrePoint.setXY();
 		bLeft = new POI(this, 0f, 0f, "Bottom Left");
@@ -46,21 +44,29 @@ public class Entity {
 		tRight = new POI(this, this.getWidth(), this.getHeight(), "Top Right");
 	}
 	
+	@Override
+    public void draw (Batch batch, float parentAlpha) {
+        //batch.draw(region, getX(), getY(), getOriginX(), getOriginY(),
+            //getWidth(), getHeight(), getScaleX(), getScaleY(), getRotation());
+        batch.draw(getRegion(), getX(), getY(), centrePoint.getRelativeX(), 
+        		centrePoint.getRelativeY(), getWidth(), getHeight(), 1f, 1f, getRotation());
+    }
+	
 	public void setTurnSpeed(float speed){
 		turnSpeed = speed;
 	}
 	
 	public void turn(boolean swap){
-		setDirection(getDirection() + ((swap) ? getTurnSpeed() : -getTurnSpeed()));
-		if(getDirection() >= 360)
-			setDirection(0);
-		else if(getDirection() < 0)
-			setDirection(359);
+		setRotation(getRotation() + ((swap) ? getTurnSpeed() : -getTurnSpeed()));
+		if(getRotation() >= 360)
+			setRotation(0);
+		else if(getRotation() < 0)
+			setRotation(359);
 		setPOIs();
 	}
 	
 	public void destroy(){
-		for(x = allPOI.size() -1; x > -1; x--){
+		for(Integer x = allPOI.size() -1; x > -1; x--){
 			allPOI.remove(x);
 		}
 	}
@@ -69,7 +75,7 @@ public class Entity {
 		float targetAngle = (float) Math.toDegrees(Math.atan2((1080 - Gdx.input.getY()) - centrePoint.getY(), Gdx.input.getX() - centrePoint.getX()));
 		if(targetAngle < 0)
 			targetAngle = 360 - (-targetAngle);
-		setDirection(targetAngle);
+		setRotation(targetAngle);
 		setPOIs();
 	}
 	
@@ -78,7 +84,7 @@ public class Entity {
 		if(targetAngle < 0)
 			targetAngle = 360 - (-targetAngle);
 		
-		setDirection(targetAngle);
+		setRotation(targetAngle);
 		setPOIs();
 	}
 	
@@ -90,8 +96,8 @@ public class Entity {
 		float directionX;
 		float directionY;
 
-		directionX = (float) Math.cos(Math.toRadians(this.getDirection()));			
-		directionY = (float) Math.sin(Math.toRadians(this.getDirection()));
+		directionX = (float) Math.cos(Math.toRadians(this.getRotation()));			
+		directionY = (float) Math.sin(Math.toRadians(this.getRotation()));
 		
 		if(!swap){
 		velocityX = directionX * getForwardSpeed();
@@ -145,46 +151,6 @@ public class Entity {
 		return reverseSpeed;
 	}
 
-	public float getX() {
-		return x;
-	}
-
-	public void setX(float x) {
-		this.x = x;
-	}
-
-	public float getY() {
-		return y;
-	}
-
-	public void setY(float y) {
-		this.y = y;
-	}
-
-	public float getWidth() {
-		return width;
-	}
-
-	public void setWidth(float width) {
-		this.width = width;
-	}
-	
-	public float getHeight() {
-		return height;
-	}
-
-	public void setHeight(float height) {
-		this.height = height;
-	}
-
-	public float getDirection() {
-		return direction;
-	}
-
-	public void setDirection(float direction) {
-		this.direction = direction;
-	}
-
 
 	public String getName() {
 		return name;
@@ -199,7 +165,7 @@ public class Entity {
 	public String toString(){
 		String finalString = getName()+":\nx="+getX()+
 				"\ny="+getY()+
-				"\nDirection="+getDirection()+
+				"\nDirection="+getRotation()+
 				"\nWidth="+getWidth()+
 				"\nHeight="+getHeight()+
 				"\nTurn Speed="+getTurnSpeed()+

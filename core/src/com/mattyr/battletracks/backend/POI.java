@@ -45,8 +45,8 @@ public class POI extends Vector2 {
 	}
 	
 	void setXY2(){
-		setX((float) (((owner.getX() + getRelativeX()) - owner.centrePoint.getX()) * Math.cos(Math.toRadians(owner.getDirection())) - ((owner.getY() + getRelativeY()) - owner.centrePoint.getY()) * Math.sin(Math.toRadians(owner.getDirection())) + owner.centrePoint.getX()));
-		setY((float) (((owner.getY() + getRelativeY()) - owner.centrePoint.getY()) * Math.cos(Math.toRadians(owner.getDirection())) + ((owner.getX() + getRelativeX()) - owner.centrePoint.getX()) * Math.sin(Math.toRadians(owner.getDirection())) + owner.centrePoint.getY()));
+		setX((float) (((owner.getX() + getRelativeX()) - owner.centrePoint.getX()) * Math.cos(Math.toRadians(owner.getRotation())) - ((owner.getY() + getRelativeY()) - owner.centrePoint.getY()) * Math.sin(Math.toRadians(owner.getRotation())) + owner.centrePoint.getX()));
+		setY((float) (((owner.getY() + getRelativeY()) - owner.centrePoint.getY()) * Math.cos(Math.toRadians(owner.getRotation())) + ((owner.getX() + getRelativeX()) - owner.centrePoint.getX()) * Math.sin(Math.toRadians(owner.getRotation())) + owner.centrePoint.getY()));
 	}
 	
 	public float getX() {

@@ -11,7 +11,7 @@ import com.mattyr.battletracks.backend.POI;
 public class Weapon extends Entity {
 	public POI bulletPoint;
 	Vehicle ownerVehicle;
-	ArrayList<Projectile> projectiles = new ArrayList<Projectile>();
+	public ArrayList<Projectile> projectiles = new ArrayList<Projectile>();
 	long reloadDelayMillis;
 	long lastShotTime = 0;
 	Sound weaponFire;
@@ -55,13 +55,21 @@ public class Weapon extends Entity {
 			projectiles.add(bullet);
 
 
-			bullet.setDirection(getDirection() + ((float) Math.random() * 5));
+			bullet.setRotation(getRotation() + ((float) Math.random() * 5));
 			bullet.setX(bulletPoint.getX());
 			bullet.setY(bulletPoint.getY());
 			bullet.setPOIs();
 		}
 	}
 	
+	public long getReloadDelayMillis() {
+		return reloadDelayMillis;
+	}
+
+	public void setReloadDelayMillis(long reloadDelayMillis) {
+		this.reloadDelayMillis = reloadDelayMillis;
+	}
+
 	@Override
 	public String toString(){
 		return super.toString()+"\nProjectiles="+projectiles.size();

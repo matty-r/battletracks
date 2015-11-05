@@ -23,8 +23,8 @@ public class Vehicle extends Entity {
 		super.setPOIs();		
 		
 		if(hardPoint != null){		
-			hardPoint.setX((float) (((getX() + hardPoint.getRelativeX()) - centrePoint.getX()) * Math.cos(Math.toRadians(getDirection())) - ((getY() + hardPoint.getRelativeY()) - centrePoint.getY()) * Math.sin(Math.toRadians(getDirection())) + centrePoint.getX()));
-			hardPoint.setY((float) (((getY() + hardPoint.getRelativeY()) - centrePoint.getY()) * Math.cos(Math.toRadians(getDirection())) + ((getX() + hardPoint.getRelativeX()) - centrePoint.getX()) * Math.sin(Math.toRadians(getDirection())) + centrePoint.getY()));
+			hardPoint.setX((float) (((getX() + hardPoint.getRelativeX()) - centrePoint.getX()) * Math.cos(Math.toRadians(getRotation())) - ((getY() + hardPoint.getRelativeY()) - centrePoint.getY()) * Math.sin(Math.toRadians(getRotation())) + centrePoint.getX()));
+			hardPoint.setY((float) (((getY() + hardPoint.getRelativeY()) - centrePoint.getY()) * Math.cos(Math.toRadians(getRotation())) + ((getX() + hardPoint.getRelativeX()) - centrePoint.getX()) * Math.sin(Math.toRadians(getRotation())) + centrePoint.getY()));
 		}
 		if(turret != null){
 			getTurret().setPOIs();

@@ -16,7 +16,11 @@ import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.badlogic.gdx.graphics.glutils.ShapeRenderer;
 import com.badlogic.gdx.graphics.glutils.ShapeRenderer.ShapeType;
 import com.badlogic.gdx.math.Intersector;
+import com.badlogic.gdx.math.MathUtils;
+import com.badlogic.gdx.math.Vector2;
+import com.badlogic.gdx.utils.Array;
 import com.mattyr.battletracks.backend.Entity;
+import com.mattyr.battletracks.backend.Item;
 import com.mattyr.battletracks.backend.POI;
 import com.mattyr.battletracks.backend.Projectile;
 import com.mattyr.battletracks.backend.Vehicle;
@@ -30,6 +34,7 @@ public class BattleTracks extends ApplicationAdapter {
 	Vehicle player1; 
 	Vehicle player2;
 	ArrayList<Vehicle> vehicles = new ArrayList<Vehicle>();
+	ArrayList<Item> items = new ArrayList<Item>();
 	OrthographicCamera camera;
 	BitmapFont screenText;
 	BitmapFont gameText;
@@ -40,9 +45,14 @@ public class BattleTracks extends ApplicationAdapter {
 	Sprite tankDotSprite; 
 	Texture gunDotTexture;
 	Sprite gunDotSprite;
+	Texture fireRateUpTexture;
+	Texture speedUpTexture;
+	Texture healthUpTexture;
 	ShapeRenderer healthBar;
 	private Boolean debugEnable = false;
-	
+	long spawnDelayMillis = 1000;
+	long lastSpawnTime = 0;
+	Vector2 mouseVector;	
 
 	@Override
 	public void create () {
@@ -51,10 +61,11 @@ public class BattleTracks extends ApplicationAdapter {
 		screenText.setColor(Color.RED);
 		gameText = new BitmapFont();
 		gameText.setColor(Color.RED);
-		
+		fireRateUpTexture = new Texture(Gdx.files.internal("fireRateUp.png"));
+		speedUpTexture = new Texture(Gdx.files.internal("speedUp.png"));
+		healthUpTexture = new Texture(Gdx.files.internal("healthUp.png"));
 		groundTxt = new Texture(Gdx.files.internal("ground2.png"));
-		SpawnPoint playerSpawn = new SpawnPoint(true); 
-		//player1 = new Helicopter(playerSpawn.x, playerSpawn.y, new Texture(Gdx.files.internal("Helicopter.png")), "Player 1");
+		SpawnPoint playerSpawn = new SpawnPoint(true,true); 
 		player1 = new Tank(playerSpawn.x, playerSpawn.y, "Player 1");
 		player1.addTurret("Player 1 Turret");
 		vehicles.add(player1);
@@ -78,16 +89,22 @@ public class BattleTracks extends ApplicationAdapter {
 	    gunDot.dispose();
 	    
 	    gunDotSprite = new Sprite(gunDotTexture);
+	    
+	    mouseVector = new Vector2(Gdx.input.getX(), Gdx.input.getX());
 	}
 
 	public static class SpawnPoint{
 		int x;
 		int y;
 		
-		public SpawnPoint(boolean random){
+		public SpawnPoint(boolean random, boolean onScreen){
 			if(random){
-				x = randomX();
-				y = randomY();
+				if(onScreen) {
+					x = randomX();
+					y = randomY();
+				} else {
+					offScreenXY();
+				}
 			} else {
 				x = Gdx.graphics.getWidth() /2;
 				y = Gdx.graphics.getHeight() /2;
@@ -95,11 +112,38 @@ public class BattleTracks extends ApplicationAdapter {
 		}
 		
 		public int randomX(){
-			return (int) Math.round((Math.random() * Gdx.graphics.getWidth()));
+				return (int) Math.round((Math.random() * Gdx.graphics.getWidth()));
 		}
 		
 		public int randomY(){
 			return (int) Math.round((Math.random() * Gdx.graphics.getHeight()));
+		}
+		
+		public void offScreenXY(){
+			float minXY = (float) (Math.random() * (0 + 300)) * -1;
+	    	float minX = (float) (Math.random() * 2220);
+	    	float minY = (float) (Math.random() * 1380);
+	    	float finalX = 0;
+	    	float finalY = 0;
+	    	
+	    	if(Math.random() * 1 > .5f)
+	    		finalX = minXY;
+	    	else
+	    		finalX = minX;
+	    	
+	    	if(Math.random() * 1 > .5f)
+	    		finalY = minXY;
+	    	else
+	    		finalY = minY;
+	    	
+	    	if(finalX < Gdx.graphics.getWidth() && finalX > 0 && finalY < Gdx.graphics.getHeight() && finalY > 0)
+	    		if(Math.random() * 1 > .5f)
+	    			finalX += (Gdx.graphics.getWidth() - finalX) + 300;
+	        	else
+	        		finalY += (Gdx.graphics.getHeight() - finalY) + 300;
+	    	
+	    	x = (int) finalX;
+	    	y = (int) finalY;
 		}
 	}
 	
@@ -113,11 +157,24 @@ public class BattleTracks extends ApplicationAdapter {
         batch.setProjectionMatrix(camera.combined);
         
 		batch.begin();
-				
+		mouseVector.x = Gdx.input.getX();
+		mouseVector.y = Gdx.input.getY();
+		
 		if((Math.random() * 100) > 99.8f){
-			spawnEnemy();
+			spawnEntity(new Tank(0,0,""));
+		}
+		if((Math.random() * 100) > 99.8f){
+			int tempRandom = (int) (Math.random() * 100);
+			if(tempRandom < 50)
+				spawnEntity(new Item(0, 0, healthUpTexture, "health up"));
+			else if(tempRandom >= 50 && tempRandom < 75)
+				spawnEntity(new Item(0, 0, fireRateUpTexture, "fire rate up"));
+			else if(tempRandom >= 75 && tempRandom <= 100)
+				spawnEntity(new Item(0, 0, speedUpTexture, "speed up"));
 		}
 		getKeyPressed();
+		
+
 		
 		try{
 			batch.draw(groundTxt, 0,0);
@@ -125,11 +182,24 @@ public class BattleTracks extends ApplicationAdapter {
 			for(Vehicle tempVehicle : vehicles)
 				tempVehicles.add(tempVehicle);
 			
+			for(Item item : items){
+				item.draw(batch, 0);
+				//batch.draw(item.getRegion(), item.getX(), item.getY(), item.centrePoint.getX(), item.centrePoint.getY(), item.getWidth(), item.getHeight(), 1f, 1f, item.getRotation());
+				if(debugEnable)
+					for(POI eachPOI : item.allPOI){
+						gunDotSprite.setPosition(eachPOI.getX(), eachPOI.getY());
+						gunDotSprite.draw(batch);
+					}
+			}
+			
+		itemCollision();
 		for(Vehicle vehicle : tempVehicles){
 			projectileCollision(vehicle.getTurret().getBulletObjects());
 				
 			if(vehicles.contains(vehicle)){
-			batch.draw(vehicle.getRegion(), vehicle.getX(), vehicle.getY(), vehicle.centrePoint.getRelativeX() , vehicle.centrePoint.getRelativeY() ,vehicle.getWidth(), vehicle.getHeight(), 1f, 1f, vehicle.getDirection());
+			vehicle.draw(batch, 0);
+				
+			//batch.draw(vehicle.getRegion(), vehicle.getX(), vehicle.getY(), vehicle.centrePoint.getRelativeX() , vehicle.centrePoint.getRelativeY() ,vehicle.getWidth(), vehicle.getHeight(), 1f, 1f, vehicle.getRotation());
 		if(debugEnable)
 			for(POI eachPOI : vehicle.allPOI){
 				tankDotSprite.setPosition(eachPOI.getX(), eachPOI.getY());
@@ -144,10 +214,11 @@ public class BattleTracks extends ApplicationAdapter {
 				vehicle.getTurret().makeBullet();
 				vehicle.drive(false);
 			}
-			batch.draw(vehicle.getTurret().getRegion(), vehicle.getTurret().getX() ,vehicle.getTurret().getY(), vehicle.getTurret().centrePoint.getRelativeX() , vehicle.getTurret().centrePoint.getRelativeY() ,vehicle.getTurret().getWidth(), vehicle.getTurret().getHeight(), 1f, 1f, vehicle.getTurret().getDirection());
+			batch.draw(vehicle.getTurret().getRegion(), vehicle.getTurret().getX() ,vehicle.getTurret().getY(), vehicle.getTurret().centrePoint.getRelativeX() , vehicle.getTurret().centrePoint.getRelativeY() ,vehicle.getTurret().getWidth(), vehicle.getTurret().getHeight(), 1f, 1f, vehicle.getTurret().getRotation());
 			for(Projectile bullet : vehicle.getTurret().getBulletObjects()){
 				bullet.drive(false);
-				batch.draw(bullet.getRegion(), bullet.getX(), bullet.getY(), bullet.centrePoint.getRelativeX() , bullet.centrePoint.getRelativeY() ,bullet.getWidth(), bullet.getHeight(), 1f, 1f, bullet.getDirection());
+				bullet.draw(batch, 0);
+				//batch.draw(bullet.getRegion(), bullet.getX(), bullet.getY(), bullet.centrePoint.getRelativeX() , bullet.centrePoint.getRelativeY() ,bullet.getWidth(), bullet.getHeight(), 1f, 1f, bullet.getRotation());
 				if(debugEnable){
 					for(POI eachPOI : bullet.allPOI){
 						gunDotSprite.setPosition(eachPOI.getX(), eachPOI.getY());
@@ -182,17 +253,18 @@ public class BattleTracks extends ApplicationAdapter {
 	}
 	
 	public String debugText(){
-		String bulletsString = "";
-		for(Projectile bullet :player1.getTurret().getBulletObjects())
-			bulletsString += bullet.toString();
+		int projectileCount = 0;
+		for(Vehicle vehicle : vehicles)
+			projectileCount += vehicle.getTurret().projectiles.size();
 		
-		return  player1.toString()+
-				"\n\nFPS="+Gdx.graphics.getFramesPerSecond() + "\n\n" +
-				player1.getTurret().toString() +
-				"\n\nMouse.x"+ Gdx.input.getX() +
-				"\nMouse.y"+Gdx.input.getY()+
+		return  "Screen Activity:"+
 				"\nVehicles:"+vehicles.size()+
-				"\n"+bulletsString;
+				"\nProjectiles:"+projectileCount+
+				"\nFPS="+Gdx.graphics.getFramesPerSecond() +
+				"\nMouse> x="+ Gdx.input.getX() + " y="+Gdx.input.getY()+
+				"\n"+player1.toString()+ "\n" +
+				player1.getTurret().toString();
+				
 	}
 	
     public boolean getKeyPressed() {
@@ -227,55 +299,78 @@ public class BattleTracks extends ApplicationAdapter {
     	 * Used for testing purposes only
     	 */
     	if(Gdx.input.isButtonPressed(Input.Buttons.RIGHT)){
-    		spawnEnemy();
+    		if(System.currentTimeMillis() - lastSpawnTime >= spawnDelayMillis){
+    			spawnEntity(new Tank(0,0,""));
+    			lastSpawnTime = System.currentTimeMillis();
+    		}
+    	} 
+    	if(Gdx.input.isKeyPressed(Input.Keys.NUM_1)){
+    		if(System.currentTimeMillis() - lastSpawnTime >= spawnDelayMillis){
+    			spawnEntity(new Item(0, 0, fireRateUpTexture, "fire rate up"));
+    			spawnEntity(new Item(0, 0, speedUpTexture, "speed up"));
+    			spawnEntity(new Item(0, 0, healthUpTexture, "health up"));
+    		}
+			lastSpawnTime = System.currentTimeMillis();
     	}
-    		
+
     	
         return true;
     }
     
-    private void spawnEnemy(){
-    	float minXY = (float) (Math.random() * (0 + 300)) * -1;
-    	float minX = (float) (Math.random() * 2220);
-    	float minY = (float) (Math.random() * 1380);
-    	float finalX = 0;
-    	float finalY = 0;
+    private void spawnEntity(Entity entityType){
+    	SpawnPoint newSpawn;
     	
-    	if(Math.random() * 1 > .5f)
-    		finalX = minXY;
-    	else
-    		finalX = minX;
+    	if (entityType instanceof Tank) {
+    		newSpawn = new SpawnPoint(true, false);
+			Tank newEntity = (Tank) new Tank(newSpawn.x, newSpawn.y, "Player "+(Math.round(Math.random()*100)));	
+			newEntity.addTurret(newEntity.getName()+" Turret");
+			newEntity.setPOIs();
+			newEntity.getTurret().setReloadDelayMillis((long) (newEntity.getTurret().getReloadDelayMillis() * 1.25f));
+			newEntity.setForwardSpeed(newEntity.getForwardSpeed() * 0.75f);
+			vehicles.add((Vehicle) newEntity);
+		} else if(entityType instanceof Item){
+			newSpawn = new SpawnPoint(true, true);
+			Item newEntity = (Item) new Item(newSpawn.x, newSpawn.y, entityType.getRegion().getTexture(), entityType.getName());
+			newEntity.setPOIs();
+			items.add(newEntity);
+		}
+
     	
-    	if(Math.random() * 1 > .5f)
-    		finalY = minXY;
-    	else
-    		finalY = minY;
     	
-    	if(finalX < Gdx.graphics.getWidth() && finalX > 0 && finalY < Gdx.graphics.getHeight() && finalY > 0)
-    		if(Math.random() * 1 > .5f)
-    			finalX += (Gdx.graphics.getWidth() - finalX) + 300;
-        	else
-        		finalY += (Gdx.graphics.getHeight() - finalY) + 300;
-    		
-    	
-    	Vehicle randomEnemy = new Tank(finalX, finalY, "Player "+(Math.round(Math.random()*100)));
-    	randomEnemy.addTurret(randomEnemy.getName()+" Turret");
-    	randomEnemy.setPOIs();
-    	vehicles.add(randomEnemy);
+    }
+    
+    private boolean itemCollision(){
+		ArrayList<Item> removeItems = new ArrayList<Item>();
+		for(Item item : items){			
+			if(getEntityCollision(item,player1)){
+				item.setCurrentHealthValue(0);
+				gameTextString = item.itemAction(player1);
+			}
+
+				if(item.getCurrentHealthValue() <= 0)
+					if(!removeItems.contains(item))
+						removeItems.add(item);
+			}
+		
+		for(Item item : removeItems){
+				item.destroy();
+				items.remove(item);
+				return true;
+		}
+		return false;
     }
     
     private boolean projectileCollision(ArrayList<Projectile> arrayList){
 		ArrayList<Projectile> removePOI = new ArrayList<Projectile>();
 		ArrayList<Entity> removeVeh = new ArrayList<Entity>();
 		for(Projectile projectile : arrayList){			
-			//for(POI firstPOI : projectile.allPOI){
 				if(projectile.getX() > Gdx.graphics.getWidth() || projectile.getY() > Gdx.graphics.getHeight() || projectile.getX() < 0 || projectile.getY() < 0){
 					projectile.setCurrentHealthValue(0);
 				}
 					
 				for(Entity testEntity : vehicles){
 					if(testEntity != projectile.getOwnerVehicle()){
-					if(getInsideHeavy(projectile,testEntity)){
+					if(getEntityCollision(projectile,testEntity)){
 						testEntity.setCurrentHealthValue(testEntity.getCurrentHealthValue() - projectile.getCurrentHealthValue());
 						gameTextString = projectile.getOwnerVehicle().getName() + " hit " + testEntity.getName() + " for " + projectile.getCurrentHealthValue() + " points of damage. " + testEntity.getCurrentHealthValue() +" remaining.";
 						projectile.setCurrentHealthValue(0);
@@ -311,7 +406,7 @@ public class BattleTracks extends ApplicationAdapter {
      * @param dst
      * @return
      */
-    private boolean getInsideHeavy(Entity src,Entity dst){
+    private boolean getEntityCollision(Entity src,Entity dst){
     	
     	for(POI sp1 : src.allPOI)
     		for(POI sp2 : src.allPOI)
@@ -324,6 +419,29 @@ public class BattleTracks extends ApplicationAdapter {
     	return false;
     }
     
+    /**
+     * Used
+     * TODO improve/remove
+     * @param src
+     * @param dst
+     * @return
+     */
+    /*private boolean getEntityOverlap(float srcX, float srcY, Entity dst){
+    	Vector2 sourcePoint = new Vector2(srcX, srcY);
+    	
+    	if(sourcePoint.x <)
+    	
+    	for(POI sp1 : src.allPOI)
+    		for(POI sp2 : src.allPOI)
+    			if(sp2 != sp1)
+    				for(POI dp1 : dst.allPOI)
+    					for(POI dp2 : dst.allPOI)
+    						if(dp2 != dp1)
+    							if(Intersector.intersectSegments(sp1, sp2, dp1, dp2, null))
+    								return true;
+    	return false;
+    }
+    */
     @Override
     public void resize(int width, int height) {
     	
