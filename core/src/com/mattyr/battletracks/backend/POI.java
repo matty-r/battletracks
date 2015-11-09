@@ -44,6 +44,9 @@ public class POI extends Vector2 {
 			setY(owner.getY() + getRelativeY());
 	}
 	
+	/**
+	 * Uses the rotationangle and relative points to set the X,Y position
+	 */
 	void setXY2(){
 		setX((float) (((owner.getX() + getRelativeX()) - owner.centrePoint.getX()) * Math.cos(Math.toRadians(owner.getRotation())) - ((owner.getY() + getRelativeY()) - owner.centrePoint.getY()) * Math.sin(Math.toRadians(owner.getRotation())) + owner.centrePoint.getX()));
 		setY((float) (((owner.getY() + getRelativeY()) - owner.centrePoint.getY()) * Math.cos(Math.toRadians(owner.getRotation())) + ((owner.getX() + getRelativeX()) - owner.centrePoint.getX()) * Math.sin(Math.toRadians(owner.getRotation())) + owner.centrePoint.getY()));

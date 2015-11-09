@@ -11,14 +11,12 @@ import com.badlogic.gdx.graphics.OrthographicCamera;
 import com.badlogic.gdx.graphics.Pixmap;
 import com.badlogic.gdx.graphics.Texture;
 import com.badlogic.gdx.graphics.g2d.BitmapFont;
+import com.badlogic.gdx.graphics.g2d.GlyphLayout;
 import com.badlogic.gdx.graphics.g2d.Sprite;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.badlogic.gdx.graphics.glutils.ShapeRenderer;
 import com.badlogic.gdx.graphics.glutils.ShapeRenderer.ShapeType;
-import com.badlogic.gdx.math.Intersector;
-import com.badlogic.gdx.math.MathUtils;
 import com.badlogic.gdx.math.Vector2;
-import com.badlogic.gdx.utils.Array;
 import com.mattyr.battletracks.backend.Entity;
 import com.mattyr.battletracks.backend.Item;
 import com.mattyr.battletracks.backend.POI;
@@ -33,26 +31,50 @@ public class BattleTracks extends ApplicationAdapter {
 	Texture tankBody;
 	Vehicle player1; 
 	Vehicle player2;
+	//Used to buffer out the offscreen edge, used in spawning enemies
+	private static int OFFSCREEN_BUFFER = 300;
+	ArrayList<Entity> allEntities = new ArrayList<Entity>();
 	ArrayList<Vehicle> vehicles = new ArrayList<Vehicle>();
 	ArrayList<Item> items = new ArrayList<Item>();
 	OrthographicCamera camera;
 	BitmapFont screenText;
 	BitmapFont gameText;
 	String gameTextString = "";
-	Pixmap tankDot;
-	Pixmap gunDot;
-	Texture tankDotTexture;
-	Sprite tankDotSprite; 
-	Texture gunDotTexture;
-	Sprite gunDotSprite;
+	Pixmap poiMarker;
+	Texture poiMarkerTexture;
+	Sprite poiMarkerSprite; 
 	Texture fireRateUpTexture;
+	Texture accuracyUpTexture;
 	Texture speedUpTexture;
 	Texture healthUpTexture;
 	ShapeRenderer healthBar;
 	private Boolean debugEnable = false;
 	long spawnDelayMillis = 1000;
 	long lastSpawnTime = 0;
-	Vector2 mouseVector;	
+	Vector2 mouseVector;
+	Entity mouseOver;
+	
+	public Entity getMouseOver() {
+		for(Vehicle tempVehicle : vehicles){
+			if(tempVehicle.isOverlapping(mouseVector)){
+				return tempVehicle;
+			}
+		}
+		for(Item tempItem : items){
+			if(tempItem.isOverlapping(mouseVector)){
+				return tempItem;
+			}
+		}
+		
+		return null;
+	}
+
+	public void setMouseOver(Vehicle mouseOver) {
+		this.mouseOver = mouseOver;
+	}
+
+	//Used in drawTextToMouse
+	GlyphLayout textLayout = new GlyphLayout();
 
 	@Override
 	public void create () {
@@ -62,34 +84,23 @@ public class BattleTracks extends ApplicationAdapter {
 		gameText = new BitmapFont();
 		gameText.setColor(Color.RED);
 		fireRateUpTexture = new Texture(Gdx.files.internal("fireRateUp.png"));
+		accuracyUpTexture = new Texture(Gdx.files.internal("accuracyUp.png"));
 		speedUpTexture = new Texture(Gdx.files.internal("speedUp.png"));
 		healthUpTexture = new Texture(Gdx.files.internal("healthUp.png"));
 		groundTxt = new Texture(Gdx.files.internal("ground2.png"));
 		SpawnPoint playerSpawn = new SpawnPoint(true,true); 
 		player1 = new Tank(playerSpawn.x, playerSpawn.y, "Player 1");
-		player1.addTurret("Player 1 Turret");
 		vehicles.add(player1);
 		healthBar = new ShapeRenderer();
 		camera = new OrthographicCamera();
 	    camera.setToOrtho(false, 1920, 1080);
-	    tankDot = new Pixmap(2,2,Pixmap.Format.RGBA8888);
-	    tankDot.setColor(Color.RED);
-	    tankDot.fill();
-	    tankDot.drawCircle(1, 1, 1);
-	    gunDot = new Pixmap(2,2,Pixmap.Format.RGBA8888);
-	    gunDot.setColor(Color.PINK);
-	    gunDot.fill();
-	    gunDot.drawCircle(1, 1, 1);
-	    tankDotTexture = new Texture(tankDot);
-	    tankDot.dispose();
-	    
-	    tankDotSprite = new Sprite(tankDotTexture);
-	    
-	    gunDotTexture = new Texture(gunDot);
-	    gunDot.dispose();
-	    
-	    gunDotSprite = new Sprite(gunDotTexture);
-	    
+	    poiMarker = new Pixmap(2,2,Pixmap.Format.RGBA8888);
+	    poiMarker.setColor(Color.RED);
+	    poiMarker.fill();
+	    poiMarker.drawCircle(1, 1, 1);
+	    poiMarkerTexture = new Texture(poiMarker);
+	    poiMarker.dispose();
+	    poiMarkerSprite = new Sprite(poiMarkerTexture);
 	    mouseVector = new Vector2(Gdx.input.getX(), Gdx.input.getX());
 	}
 
@@ -120,9 +131,9 @@ public class BattleTracks extends ApplicationAdapter {
 		}
 		
 		public void offScreenXY(){
-			float minXY = (float) (Math.random() * (0 + 300)) * -1;
-	    	float minX = (float) (Math.random() * 2220);
-	    	float minY = (float) (Math.random() * 1380);
+			float minXY = (float) (Math.random() * (OFFSCREEN_BUFFER)) * -1;
+	    	float minX = (float) (Math.random() * (Gdx.graphics.getWidth() + OFFSCREEN_BUFFER));
+	    	float minY = (float) (Math.random() * (Gdx.graphics.getHeight() + OFFSCREEN_BUFFER));
 	    	float finalX = 0;
 	    	float finalY = 0;
 	    	
@@ -138,9 +149,9 @@ public class BattleTracks extends ApplicationAdapter {
 	    	
 	    	if(finalX < Gdx.graphics.getWidth() && finalX > 0 && finalY < Gdx.graphics.getHeight() && finalY > 0)
 	    		if(Math.random() * 1 > .5f)
-	    			finalX += (Gdx.graphics.getWidth() - finalX) + 300;
+	    			finalX += (Gdx.graphics.getWidth() - finalX) + OFFSCREEN_BUFFER;
 	        	else
-	        		finalY += (Gdx.graphics.getHeight() - finalY) + 300;
+	        		finalY += (Gdx.graphics.getHeight() - finalY) + OFFSCREEN_BUFFER;
 	    	
 	    	x = (int) finalX;
 	    	y = (int) finalY;
@@ -158,14 +169,16 @@ public class BattleTracks extends ApplicationAdapter {
         
 		batch.begin();
 		mouseVector.x = Gdx.input.getX();
-		mouseVector.y = Gdx.input.getY();
+		mouseVector.y = Gdx.graphics.getHeight() - Gdx.input.getY();
 		
 		if((Math.random() * 100) > 99.8f){
 			spawnEntity(new Tank(0,0,""));
 		}
 		if((Math.random() * 100) > 99.8f){
 			int tempRandom = (int) (Math.random() * 100);
-			if(tempRandom < 50)
+			if(tempRandom <= 25)
+				spawnEntity(new Item(0, 0, accuracyUpTexture, "accuracy up"));
+			else if(tempRandom > 25 && tempRandom < 50)
 				spawnEntity(new Item(0, 0, healthUpTexture, "health up"));
 			else if(tempRandom >= 50 && tempRandom < 75)
 				spawnEntity(new Item(0, 0, fireRateUpTexture, "fire rate up"));
@@ -173,82 +186,102 @@ public class BattleTracks extends ApplicationAdapter {
 				spawnEntity(new Item(0, 0, speedUpTexture, "speed up"));
 		}
 		getKeyPressed();
-		
 
-		
 		try{
 			batch.draw(groundTxt, 0,0);
 			ArrayList<Vehicle> tempVehicles = new ArrayList<Vehicle>();
 			for(Vehicle tempVehicle : vehicles)
 				tempVehicles.add(tempVehicle);
 			
-			for(Item item : items){
+			for(Item item : items)
 				item.draw(batch, 0);
-				//batch.draw(item.getRegion(), item.getX(), item.getY(), item.centrePoint.getX(), item.centrePoint.getY(), item.getWidth(), item.getHeight(), 1f, 1f, item.getRotation());
-				if(debugEnable)
-					for(POI eachPOI : item.allPOI){
-						gunDotSprite.setPosition(eachPOI.getX(), eachPOI.getY());
-						gunDotSprite.draw(batch);
-					}
-			}
 			
-		itemCollision();
-		for(Vehicle vehicle : tempVehicles){
-			projectileCollision(vehicle.getTurret().getBulletObjects());
-				
-			if(vehicles.contains(vehicle)){
-			vehicle.draw(batch, 0);
-				
-			//batch.draw(vehicle.getRegion(), vehicle.getX(), vehicle.getY(), vehicle.centrePoint.getRelativeX() , vehicle.centrePoint.getRelativeY() ,vehicle.getWidth(), vehicle.getHeight(), 1f, 1f, vehicle.getRotation());
-		if(debugEnable)
-			for(POI eachPOI : vehicle.allPOI){
-				tankDotSprite.setPosition(eachPOI.getX(), eachPOI.getY());
-				tankDotSprite.draw(batch);
-			}
-		
-		if(vehicle.getTurret() != null)
-			player1.getTurret().faceMouse();
-			if(vehicle != player1){
-				vehicle.getTurret().faceVehicle(player1);
-				vehicle.faceVehicle(player1);
-				vehicle.getTurret().makeBullet();
-				vehicle.drive(false);
-			}
-			batch.draw(vehicle.getTurret().getRegion(), vehicle.getTurret().getX() ,vehicle.getTurret().getY(), vehicle.getTurret().centrePoint.getRelativeX() , vehicle.getTurret().centrePoint.getRelativeY() ,vehicle.getTurret().getWidth(), vehicle.getTurret().getHeight(), 1f, 1f, vehicle.getTurret().getRotation());
-			for(Projectile bullet : vehicle.getTurret().getBulletObjects()){
-				bullet.drive(false);
-				bullet.draw(batch, 0);
-				//batch.draw(bullet.getRegion(), bullet.getX(), bullet.getY(), bullet.centrePoint.getRelativeX() , bullet.centrePoint.getRelativeY() ,bullet.getWidth(), bullet.getHeight(), 1f, 1f, bullet.getRotation());
-				if(debugEnable){
-					for(POI eachPOI : bullet.allPOI){
-						gunDotSprite.setPosition(eachPOI.getX(), eachPOI.getY());
-						gunDotSprite.draw(batch);
-					}
-				}
-			}
+			itemCollision();
 			
-			if(debugEnable)
-				for(POI eachPOI : vehicle.getTurret().allPOI){
-					gunDotSprite.setPosition(eachPOI.getX(), eachPOI.getY());
-					gunDotSprite.draw(batch);
-				}
+			for(Vehicle vehicle : tempVehicles){
+				projectileCollision(vehicle.getTurret().getBulletObjects());
+				
+				if(vehicles.contains(vehicle)){
+				vehicle.draw(batch, 0);
+				
+					if(vehicle.getTurret() != null && vehicle == player1)
+						player1.getTurret().turnToFacePoint(mouseVector);
+				
+					if(vehicle != player1){
+					vehicle.getTurret().turnToFaceEntity(player1);
+					vehicle.turnToFaceEntity(player1);
+					if(vehicle.turnToFaceEntity(player1))
+						vehicle.getTurret().firePrimary();
+					
+					vehicle.drive(false);
+					}
+				
+					vehicle.getTurret().draw(batch, 0);
+					for(Projectile bullet : vehicle.getTurret().getBulletObjects()){
+						if(bullet.isTrackTarget() && bullet.getOwnerVehicle() == player1)
+							bullet.drive(false, getMouseOver());
+						else
+							bullet.drive(false);
+						bullet.draw(batch, 0);
+						}
+				}	
 			}
-		}
 		} finally {		
 	
-		if(debugEnable)
-			screenText.draw(batch, debugText(), 2, Gdx.graphics.getHeight());
+		
 		gameText.draw(batch, gameTextString, Gdx.graphics.getWidth() /2, Gdx.graphics.getHeight());
 		batch.end();
-		
-		
-		healthBar.begin(ShapeType.Filled);
-		healthBar.setColor(Color.RED);
 		for(Vehicle tempVehicle : vehicles){
+			healthBar.begin(ShapeType.Filled);
+			healthBar.setColor(Color.RED);
 			float healthBarValue = (float) (tempVehicle.getWidth()/100) * (((float) (tempVehicle.getCurrentHealthValue() ) / tempVehicle.getMaxHealthValue())*100);
-			healthBar.rect(tempVehicle.getX(),tempVehicle.getY()- 20,healthBarValue ,1);
+			healthBar.rect(tempVehicle.getX(),tempVehicle.getY(),healthBarValue ,1);
+			healthBar.end();
 		}
-		healthBar.end();
+		debugShow();
+	}
+	}
+	
+	
+	public void debugShow(){
+		if(debugEnable){
+			batch.begin();
+			gameText.draw(batch, debugText(), 2, Gdx.graphics.getHeight());
+			batch.end();
+			for(Vehicle tempVehicle : vehicles){
+				batch.begin();
+				if(getMouseOver() == tempVehicle){
+					for(POI eachPOI : tempVehicle.allPOI){
+						poiMarkerSprite.setPosition(eachPOI.getX(), eachPOI.getY());
+						poiMarkerSprite.draw(batch);
+					}
+					//setMouseOver(tempVehicle);
+				drawTextToMouse(tempVehicle.toString());
+				}
+				
+				if(getMouseOver() == tempVehicle.getTurret()){
+					for(POI eachPOI : tempVehicle.getTurret().allPOI){
+						poiMarkerSprite.setPosition(eachPOI.getX(), eachPOI.getY());
+						poiMarkerSprite.draw(batch);
+					}
+					drawTextToMouse(tempVehicle.getTurret().toString());
+				}
+				batch.end();	
+			}
+				
+		
+			for(Item tempItem : items){
+				if(getMouseOver() == tempItem){
+				batch.begin();
+				for(POI eachPOI : tempItem.allPOI){
+					poiMarkerSprite.setPosition(eachPOI.getX(), eachPOI.getY());
+					poiMarkerSprite.draw(batch);
+				}
+
+				drawTextToMouse(tempItem.toString());
+				batch.end();
+				}
+			}
 		}
 	}
 	
@@ -261,68 +294,59 @@ public class BattleTracks extends ApplicationAdapter {
 				"\nVehicles:"+vehicles.size()+
 				"\nProjectiles:"+projectileCount+
 				"\nFPS="+Gdx.graphics.getFramesPerSecond() +
-				"\nMouse> x="+ Gdx.input.getX() + " y="+Gdx.input.getY()+
-				"\n"+player1.toString()+ "\n" +
-				player1.getTurret().toString();
+				"\nMouse> x="+ Gdx.input.getX() + " y="+Gdx.input.getY();
 				
 	}
+	/**
+	 * Ensures that when text is draw, the text doesn't fall off the screen.
+	 * @param text
+	 */
+	public void drawTextToMouse(String text){
+		
+		textLayout.setText(gameText,text);
+		float width = textLayout.width;// contains the width of the current set text
+		float height = textLayout.height; // contains the height of the current set text
+		float textY = mouseVector.y + height;
+		float textX = mouseVector.x + width;
+		
+		if(textY > Gdx.graphics.getHeight())
+			textY = Gdx.graphics.getHeight();
+		if(textX > Gdx.graphics.getWidth())
+			textX = Gdx.graphics.getWidth() - width;
+		else 
+			textX = mouseVector.x;
+			
+		gameText.draw(batch,text, textX,textY);
+	}
 	
-    public boolean getKeyPressed() {
+    public void getKeyPressed() {
+    	player1.getKeyPressed();
     	
-    	if(Gdx.input.isKeyPressed(Input.Keys.S)){
-        	player1.drive(true);
-    		if(Gdx.input.isKeyPressed(Input.Keys.A))
-    			player1.turn(false);
-    		else
-    			if(Gdx.input.isKeyPressed(Input.Keys.D))
-        			player1.turn(true);
-    		
-    	} else {
-		if(Gdx.input.isKeyPressed(Input.Keys.W))
-			player1.drive(false);
-    	
-    	if(Gdx.input.isKeyPressed(Input.Keys.A))
-			player1.turn(true);
-    	if(Gdx.input.isKeyPressed(Input.Keys.D))
-			player1.turn(false);
-    	if(Gdx.input.isKeyPressed(Input.Keys.ESCAPE))
-    		Gdx.app.exit();
-   		
-    	}
-    	
-    	if(Gdx.input.isKeyPressed(Input.Keys.SPACE))
+    	if(Gdx.input.isKeyJustPressed(Input.Keys.SPACE))
     		debugEnable = !debugEnable;
-    	
-    	if(Gdx.input.isButtonPressed(Input.Buttons.LEFT))
-    		player1.getTurret().makeBullet();
     	/**
     	 * Used for testing purposes only
     	 */
-    	if(Gdx.input.isButtonPressed(Input.Buttons.RIGHT)){
-    		if(System.currentTimeMillis() - lastSpawnTime >= spawnDelayMillis){
-    			spawnEntity(new Tank(0,0,""));
-    			lastSpawnTime = System.currentTimeMillis();
-    		}
+    	if(Gdx.input.isKeyJustPressed(Input.Keys.NUM_2)){
+   			spawnEntity(new Tank(0,0,""));
     	} 
-    	if(Gdx.input.isKeyPressed(Input.Keys.NUM_1)){
-    		if(System.currentTimeMillis() - lastSpawnTime >= spawnDelayMillis){
-    			spawnEntity(new Item(0, 0, fireRateUpTexture, "fire rate up"));
-    			spawnEntity(new Item(0, 0, speedUpTexture, "speed up"));
-    			spawnEntity(new Item(0, 0, healthUpTexture, "health up"));
-    		}
-			lastSpawnTime = System.currentTimeMillis();
+    	if(Gdx.input.isKeyJustPressed(Input.Keys.NUM_1)){
+			spawnEntity(new Item(0, 0, fireRateUpTexture, "fire rate up"));
+			spawnEntity(new Item(0, 0, speedUpTexture, "speed up"));
+			spawnEntity(new Item(0, 0, healthUpTexture, "health up"));
+			spawnEntity(new Item(0, 0, accuracyUpTexture, "accuracy up"));
     	}
-
-    	
-        return true;
     }
     
     private void spawnEntity(Entity entityType){
     	SpawnPoint newSpawn;
     	
     	if (entityType instanceof Tank) {
-    		newSpawn = new SpawnPoint(true, false);
-			Tank newEntity = (Tank) new Tank(newSpawn.x, newSpawn.y, "Player "+(Math.round(Math.random()*100)));	
+			newSpawn = new SpawnPoint(true, false);
+			
+			//newSpawn.x= (int) mouseVector.x;
+    		//newSpawn.y= (int) mouseVector.y;
+			Tank newEntity = (Tank) new Tank(newSpawn.x, newSpawn.y, "Player "+(Math.round(Math.random()*100)));
 			newEntity.addTurret(newEntity.getName()+" Turret");
 			newEntity.setPOIs();
 			newEntity.getTurret().setReloadDelayMillis((long) (newEntity.getTurret().getReloadDelayMillis() * 1.25f));
@@ -330,6 +354,10 @@ public class BattleTracks extends ApplicationAdapter {
 			vehicles.add((Vehicle) newEntity);
 		} else if(entityType instanceof Item){
 			newSpawn = new SpawnPoint(true, true);
+			if(Gdx.input.isKeyPressed(Input.Keys.SHIFT_LEFT)){
+	    		newSpawn.x= (int) mouseVector.x;
+	    		newSpawn.y= (int) mouseVector.y;
+			}
 			Item newEntity = (Item) new Item(newSpawn.x, newSpawn.y, entityType.getRegion().getTexture(), entityType.getName());
 			newEntity.setPOIs();
 			items.add(newEntity);
@@ -342,7 +370,7 @@ public class BattleTracks extends ApplicationAdapter {
     private boolean itemCollision(){
 		ArrayList<Item> removeItems = new ArrayList<Item>();
 		for(Item item : items){			
-			if(getEntityCollision(item,player1)){
+			if(item.isCollidedWith(player1)){
 				item.setCurrentHealthValue(0);
 				gameTextString = item.itemAction(player1);
 			}
@@ -369,8 +397,7 @@ public class BattleTracks extends ApplicationAdapter {
 				}
 					
 				for(Entity testEntity : vehicles){
-					if(testEntity != projectile.getOwnerVehicle()){
-					if(getEntityCollision(projectile,testEntity)){
+					if(projectile.isCollidedWith(testEntity)){
 						testEntity.setCurrentHealthValue(testEntity.getCurrentHealthValue() - projectile.getCurrentHealthValue());
 						gameTextString = projectile.getOwnerVehicle().getName() + " hit " + testEntity.getName() + " for " + projectile.getCurrentHealthValue() + " points of damage. " + testEntity.getCurrentHealthValue() +" remaining.";
 						projectile.setCurrentHealthValue(0);
@@ -379,7 +406,6 @@ public class BattleTracks extends ApplicationAdapter {
 								removeVeh.add(testEntity);
 							}
 						}
-					}
 					}
 				}
 				if(projectile.getCurrentHealthValue() <= 0)
@@ -398,50 +424,7 @@ public class BattleTracks extends ApplicationAdapter {
 		}
 		return false;
     }
-	
-    /**
-     * This is very resource heavy collision detection 
-     * TODO improve/remove
-     * @param src
-     * @param dst
-     * @return
-     */
-    private boolean getEntityCollision(Entity src,Entity dst){
-    	
-    	for(POI sp1 : src.allPOI)
-    		for(POI sp2 : src.allPOI)
-    			if(sp2 != sp1)
-    				for(POI dp1 : dst.allPOI)
-    					for(POI dp2 : dst.allPOI)
-    						if(dp2 != dp1)
-    							if(Intersector.intersectSegments(sp1, sp2, dp1, dp2, null))
-    								return true;
-    	return false;
-    }
     
-    /**
-     * Used
-     * TODO improve/remove
-     * @param src
-     * @param dst
-     * @return
-     */
-    /*private boolean getEntityOverlap(float srcX, float srcY, Entity dst){
-    	Vector2 sourcePoint = new Vector2(srcX, srcY);
-    	
-    	if(sourcePoint.x <)
-    	
-    	for(POI sp1 : src.allPOI)
-    		for(POI sp2 : src.allPOI)
-    			if(sp2 != sp1)
-    				for(POI dp1 : dst.allPOI)
-    					for(POI dp2 : dst.allPOI)
-    						if(dp2 != dp1)
-    							if(Intersector.intersectSegments(sp1, sp2, dp1, dp2, null))
-    								return true;
-    	return false;
-    }
-    */
     @Override
     public void resize(int width, int height) {
     	

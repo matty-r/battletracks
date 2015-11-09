@@ -22,6 +22,9 @@ public class Item extends Entity {
 		} else if(getName().toLowerCase().contains("health up")){
 			actionOn.setCurrentHealthValue(actionOn.getCurrentHealthValue() * 2);
 			return "Improved health of " + actionOn.getName();
+		} else if(getName().toLowerCase().contains("accuracy up")){
+			actionOn.getTurret().setAccuracy((float) (actionOn.getTurret().getAccuracy() * 1.1));
+			return "Improved accuracy of " + actionOn.getName();
 		}
 		
 		return "No valid actions!";

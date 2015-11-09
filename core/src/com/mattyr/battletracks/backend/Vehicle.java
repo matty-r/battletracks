@@ -1,9 +1,11 @@
 package com.mattyr.battletracks.backend;
 
+
 import com.badlogic.gdx.Gdx;
+import com.badlogic.gdx.Input;
 import com.badlogic.gdx.graphics.Texture;
 import com.mattyr.battletracks.backend.Weapon;
-import com.mattyr.battletracks.TankTurret;
+import com.mattyr.battletracks.Helicopter;
 import com.mattyr.battletracks.backend.Entity;
 import com.mattyr.battletracks.backend.POI;
 
@@ -15,8 +17,53 @@ public class Vehicle extends Entity {
 		super(startX, startY, loadTexture, name, healthValue);
 	}
 	
-	public void addTurret(String name){
+	/*public void addTurret(String name){
 		setTurret(new TankTurret(getX(), getY(), new Texture(Gdx.files.internal("tankTurret.png")), this, name));
+	}*/	
+	
+	public void getKeyPressed(){
+		if(Gdx.input.isKeyPressed(Input.Keys.S)){
+        	drive(true);
+    		if(Gdx.input.isKeyPressed(Input.Keys.A))
+    			if (this instanceof Helicopter) {
+					strafe(false);
+					
+				} else
+					turn(false);
+    		else
+    			if(Gdx.input.isKeyPressed(Input.Keys.D))
+    				if (this instanceof Helicopter) {
+    					strafe(true);
+    				} else {
+    					turn(true);
+    				}
+    	} else {
+		if(Gdx.input.isKeyPressed(Input.Keys.W))
+			drive(false);
+    	
+    	if(Gdx.input.isKeyPressed(Input.Keys.A))
+    		if (this instanceof Helicopter) {
+				strafe(false);
+				
+			} else 
+			turn(true);
+    	if(Gdx.input.isKeyPressed(Input.Keys.D))
+    		if (this instanceof Helicopter) {
+				strafe(true);
+				
+			} else 
+			turn(false);
+    	if(Gdx.input.isKeyPressed(Input.Keys.ESCAPE))
+    		Gdx.app.exit();
+   		
+    	}
+    	
+    	
+    	
+    	if(Gdx.input.isButtonPressed(Input.Buttons.LEFT))
+    		getTurret().firePrimary();
+    	if(Gdx.input.isButtonPressed(Input.Buttons.RIGHT))
+    		getTurret().fireSecondary();
 	}
 
 	public void setPOIs(){
